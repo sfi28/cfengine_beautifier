@@ -8,7 +8,9 @@ import copy
 import re
 import sys
 
-TAB_SIZE = 2
+import traceback
+
+TAB_SIZE = 4
 
 DEBUG_SHOULD_LOG_COMMENTS = False # Never push True to remote master
 # When logging comments is enabled, this string will be highlighted
@@ -491,6 +493,19 @@ class PromiseType(Node):
         else:
             join_by = []
         child_options = options.child()
+
+        # reset type_max_indent for new PromiseType
+        type_max_indent = 0
+        # set type_max_indent to max length of its constraint types
+        for type_lines in self["class_promise_list"].lines(child_options):
+            tmp_type = re.search('([^\s]+) => .+', type_lines.string, re.IGNORECASE)
+            if tmp_type and type_max_indent < len(tmp_type.group(1)):
+                type_max_indent = len(tmp_type.group(1))
+
+        # set max_type_len for each Promise
+        for item in self["class_promise_list"].items:
+            item["max_type_len"] = type_max_indent
+
         return joined_lines(self["name"].lines(child_options),
                             join_by + self["class_promise_list"].lines(child_options))
 
@@ -506,12 +521,35 @@ class Promise(Node):
     def __init__(self, position, promiser, arrow, promisee, maybe_comma, constraints, semicolon):
         super(Promise, self).__init__(position)
         self["promiser"] = promiser
+
+        return joined_lines(self["name"].lines(child_options),
+                            join_by + self["class_promise_list"].lines(child_options))
+
+
+class Class(Node):
+    def __init__(self, position, expression):
+        super(Class, self).__init__(position)
+        self.respects_preceding_empty_line = True
+        self["expression"] = expression
+    def _lines(self, options):
+        return self["expression"].lines(options.child())
+
+class Promise(Node):
+    def __init__(self, position, promiser, arrow, promisee, maybe_comma, constraints, semicolon, type_length = 0):
+        super(Promise, self).__init__(position)
+        self["promiser"] = promiser
         self["promisee"] = promisee
         self["maybe_comma"] = maybe_comma # This is never output
         self["constraints"] = constraints
         self["semicolon"] = semicolon
+        self["max_type_len"] = type_length
         self.respects_preceding_empty_line = True
     def _lines(self, options):
+
+       # set assing_indent depending on type length (difference between max_type_len and type length)
+        for constraint in self["constraints"].items:
+            constraint["assing_indent"] = self["max_type_len"] - len(constraint["type"].name)
+
         promisee_lines = []
         no_indent_options = options.child()
 
@@ -550,12 +588,19 @@ class Promise(Node):
         #     constraint;
         #
 
+        # TODO does not work with assing indent
+        #def one_liner_string(options):
+        #    constraints_options = options.child(promiser_lines, 1)
+        #    constraints_options.may_line_break_constraint = False
+        #    return joined_lines(promiser_and_promisee,
+        #                        [Line(" ")],
+        #                        self["constraints"].lines(constraints_options))
         def one_liner_string(options):
-            constraints_options = options.child(promiser_lines, 1)
-            constraints_options.may_line_break_constraint = False
             return joined_lines(promiser_and_promisee,
-                                [Line(" ")],
-                                self["constraints"].lines(constraints_options))
+                                # Line break, and then indent
+                                [Line(""), Line("", TAB_SIZE)],
+                                self["constraints"].lines(options.child(TAB_SIZE)))
+
         def empty_list_string(options):
             return joined_lines(promiser_and_promisee, self["constraints"].lines(no_indent_options))
         def lined_string(options):
@@ -575,7 +620,8 @@ class Promise(Node):
             # First try to fit on one line (without allowing line break in constraint), and if does
             # not fit, put the constraint on its own line (constraing will first try without line
             # break, then with it). If the promise is over multiple lines, don't make it a one liner.
-            lines_fns = [one_liner_string, lined_string]
+            #lines_fns = [one_liner_string, lined_string]
+            lines_fns = [one_liner_string]
         elif self["constraints"].len() == 0:
             lines_fns = [empty_list_string]
         else:
@@ -594,12 +640,13 @@ NON_BUNDLE_OR_BODY_CONSTRAINT_TYPES = ["ifvarclass",
                                        "rlist"]
 
 class Constraint(Node):
-    def __init__(self, position, type, assign, value, maybe_comma):
+    def __init__(self, position, type, assign, value, maybe_comma, assing_indent = 0):
         super(Constraint, self).__init__(position)
         self["type"] = type
         self["assing"] = assign
         self["value"] = value
         self["maybe_comma"] = maybe_comma
+        self["assing_indent"] = assing_indent
     def _lines(self, options):
         type_lines = self["type"].lines(options.child())
 
@@ -617,15 +664,17 @@ class Constraint(Node):
         lines_fns = [lambda options:
                          # First try to fit all on the same line
                          joined_lines(type_lines,
+                                      [Line( " " * self["assing_indent"] )],
                                       [Line(" => ")],
                                       # 4 for " => "
-                                      self["value"].lines(value_options_base.child(type_lines, 4)))]
+                                      self["value"].lines(value_options_base.child(type_lines, 4 + self["assing_indent"])))]
         if options.may_line_break_constraint:
             lines_fns.append(lambda options:
                                  # If does not fit, break after =>
                                  joined_lines(type_lines,
-                                              [Line(" =>"), Line("", TAB_SIZE)],
-                                              self["value"].lines(value_options_base.child(TAB_SIZE))))
+                                              [Line( " " * self["assing_indent"] )],
+                                              [Line(" =>"), Line("", TAB_SIZE + self["assing_indent"] + 3)],
+                                              self["value"].lines(value_options_base.child(TAB_SIZE + self["assing_indent"]))))
         return first_that_fits(options, lines_fns)
 
 # This is inside body { ... }
@@ -749,6 +798,9 @@ class ListBase(Node):
 
             is_first = index == 0
 
+            if isinstance(node, Promise) and not is_first:
+                node.preceded_by_empty_line = True
+
             depth = depth_fn(self, node)
             child_options = options.child(depth,
                                           respects_preceding_empty_line =
@@ -758,6 +810,7 @@ class ListBase(Node):
             return empty
         else:
             terminators = [terminator] * (len(self.items) - 1) + [end_terminator]
+
             # Want to say map(lambda (index, (terminator, node)) but cannot in Python 3
             child_line_arrays = list(map(lambda idx_and_terminator_node_pair:
                                              joined_lines(prefix_by,
@@ -783,7 +836,7 @@ class InlinableList(ListBase):
         if not self.inlinable():
             return [lined_args]
         elif  1 < len(self.items): # don't line-break a list with just one element
-            return [inlined_args, lined_args]
+            return [lined_args]
         else:
             return [inlined_args]
     def _inlined_and_lined_list_args(self, options):
@@ -802,10 +855,11 @@ LIST_ARGS = ({ "join_by" : [Line(" ")],
              # lined version
              { "postfix_by" : LINE_BREAK,
                "terminator" : ",",
-               "end_terminator" : ",",
+               "end_terminator" : "",
                "empty" : [Line("{}")],
                "start" : [Line("{"), Line("")],
                "end" : [Line("}")],
+               "depth_fn" : lambda list, node: 1,
                "respects_preceding_empty_line_fn" : lambda is_first: not is_first })
 class List(InlinableList):
     def _inlined_and_lined_list_args(self, options):

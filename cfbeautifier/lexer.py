@@ -18,13 +18,13 @@ keywords = {
    "bundle" : "BUNDLE",
 }
 
+def t_CLASS(t):
+    r"[.|&!()$\"a-zA-Z0-9_\200-\377:]+::"
+    return t
+
 def t_QSTRING(t):
     r"\"((\\(.|\n))|[^\"\\])*\"|\'((\\(.|\n))|[^'\\])*\'|`[^`]*`"
     t.lexer.lineno += t.value.count("\n")
-    return t
-
-def t_CLASS(t):
-    r"[.|&!()a-zA-Z0-9_\200-\377:]+::"
     return t
 
 # Must be before promise type
