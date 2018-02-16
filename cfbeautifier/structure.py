@@ -809,7 +809,7 @@ class ListBase(Node):
 
             is_first = index == 0
 
-            if isinstance(node, Promise) and not is_first:
+            if (isinstance(node, Promise) or isinstance(node, Class)) and not is_first:
                 node.preceded_by_empty_line = True
 
             depth = depth_fn(self, node)
