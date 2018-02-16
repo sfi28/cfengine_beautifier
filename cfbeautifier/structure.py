@@ -8,7 +8,6 @@ import copy
 import re
 import sys
 
-import traceback
 
 TAB_SIZE = 4
 
@@ -418,6 +417,18 @@ class Block(Node):
         self.allows_end_of_line_comments = False
     def _lines(self, options):
         child_options = options.child()
+
+        # set assing_indent for Selection here because PromiseType would not
+        # (Selection is from ClassSelectionList, not PromiseTypeList)
+        if isinstance(self["block_child_list"], ClassSelectionList):
+            max_type_len = 0
+            for selection in self["block_child_list"].items:
+                if isinstance(selection, Selection) and max_type_len < len(selection["type"].name):
+                    max_type_len = len(selection["type"].name)
+            for selection in self["block_child_list"].items:
+                if isinstance(selection, Selection):
+                    selection["assing_indent"] = max_type_len - len(selection["type"].name)
+
         space = [Line(" ")]
         lines_until_args = joined_lines(self["element"].lines(child_options),
                                         space,
