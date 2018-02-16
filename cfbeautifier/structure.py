@@ -474,11 +474,13 @@ class Comment(Node):
         # text without starting #
         def text_for_line(line):
             # No space in #-..., or #=... or ##...
-            if len(line) <= 1 or re.match(r"^\#[\#\-=]", line):
-                text = line[1:]
+            # Remove following hashes
+            beginning_hash = re.match(r"^\#[\#\-=]*(.*)", line)
+            if len(line) <= 1 or beginning_hash:
+                text = beginning_hash.group(1)
                 separator = ""
             else:
-                text, = re.match(r"\#[\t ]?(.*)", line).groups()
+                text, = re.match(r"\#+[\t ]?(.*)", line).groups(1)
                 separator = " "
             return Line("#%s" % separator + text, 0)
         return map(text_for_line, self.text_lines)
