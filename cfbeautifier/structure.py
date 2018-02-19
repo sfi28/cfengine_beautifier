@@ -421,7 +421,7 @@ class Block(Node):
     def _lines(self, options):
         child_options = options.child()
 
-        # set assing_indent for Selection here because PromiseType would not
+        # set assign_indent for Selection here because PromiseType would not
         # (Selection is from ClassSelectionList, not PromiseTypeList)
         if isinstance(self["block_child_list"], ClassSelectionList):
             max_type_len = 0
@@ -430,7 +430,7 @@ class Block(Node):
                     max_type_len = len(selection["type"].name)
             for selection in self["block_child_list"].items:
                 if isinstance(selection, Selection):
-                    selection["assing_indent"] = max_type_len - len(selection["type"].name)
+                    selection["assign_indent"] = max_type_len - len(selection["type"].name)
 
         space = [Line(" ")]
         lines_until_args = joined_lines(self["element"].lines(child_options),
@@ -562,9 +562,9 @@ class Promise(Node):
         self.respects_preceding_empty_line = True
     def _lines(self, options):
 
-       # set assing_indent depending on type length (difference between max_type_len and type length)
+       # set assign_indent depending on type length (difference between max_type_len and type length)
         for constraint in self["constraints"].items:
-            constraint["assing_indent"] = self["max_type_len"] - len(constraint["type"].name)
+            constraint["assign_indent"] = self["max_type_len"] - len(constraint["type"].name)
 
         promisee_lines = []
         no_indent_options = options.child()
@@ -604,13 +604,6 @@ class Promise(Node):
         #     constraint;
         #
 
-        # TODO does not work with assing indent
-        #def one_liner_string(options):
-        #    constraints_options = options.child(promiser_lines, 1)
-        #    constraints_options.may_line_break_constraint = False
-        #    return joined_lines(promiser_and_promisee,
-        #                        [Line(" ")],
-        #                        self["constraints"].lines(constraints_options))
         def one_liner_string(options):
             return joined_lines(promiser_and_promisee,
                                 # Line break, and then indent
@@ -656,13 +649,13 @@ NON_BUNDLE_OR_BODY_CONSTRAINT_TYPES = ["ifvarclass",
                                        "rlist"]
 
 class Constraint(Node):
-    def __init__(self, position, type, assign, value, maybe_comma, assing_indent = 0):
+    def __init__(self, position, type, assign, value, maybe_comma, assign_indent = 0):
         super(Constraint, self).__init__(position)
         self["type"] = type
-        self["assing"] = assign
+        self["assign"] = assign
         self["value"] = value
         self["maybe_comma"] = maybe_comma
-        self["assing_indent"] = assing_indent
+        self["assign_indent"] = assign_indent
     def _lines(self, options):
         type_lines = self["type"].lines(options.child())
 
@@ -680,17 +673,17 @@ class Constraint(Node):
         lines_fns = [lambda options:
                          # First try to fit all on the same line
                          joined_lines(type_lines,
-                                      [Line( " " * self["assing_indent"] )],
+                                      [Line( " " * self["assign_indent"] )],
                                       [Line(" => ")],
                                       # 4 for " => "
-                                      self["value"].lines(value_options_base.child(type_lines, 4 + self["assing_indent"])))]
+                                      self["value"].lines(value_options_base.child(type_lines, 4 + self["assign_indent"])))]
         if options.may_line_break_constraint:
             lines_fns.append(lambda options:
                                  # If does not fit, break after =>
                                  joined_lines(type_lines,
-                                              [Line( " " * self["assing_indent"] )],
-                                              [Line(" =>"), Line("", TAB_SIZE + self["assing_indent"] + 3)],
-                                              self["value"].lines(value_options_base.child(TAB_SIZE + self["assing_indent"]))))
+                                              [Line( " " * self["assign_indent"] )],
+                                              [Line(" =>"), Line("", TAB_SIZE + self["assign_indent"] + 3)],
+                                              self["value"].lines(value_options_base.child(TAB_SIZE + self["assign_indent"]))))
         return first_that_fits(options, lines_fns)
 
 # This is inside body { ... }
@@ -871,7 +864,7 @@ LIST_ARGS = ({ "join_by" : [Line(" ")],
              # lined version
              { "postfix_by" : LINE_BREAK,
                "terminator" : ",",
-               "end_terminator" : "",
+               "end_terminator" : ",",
                "empty" : [Line("{}")],
                "start" : [Line("{"), Line("")],
                "end" : [Line("}")],
