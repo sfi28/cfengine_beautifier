@@ -377,6 +377,9 @@ class Node(object):
             if line_comments:
                 line_comment = merged_comment(line_comments)
                 line_comment_lines = line_comment.lines(comment_options)
+                # append single hash at the end of standalone comments
+                if line_comment_lines[-1].string != "#":
+                    line_comment_lines.append( Line("#", 0))
             else:
                 line_comment_lines = []
 
@@ -888,6 +891,10 @@ ARGUMENT_LIST_ARGS = ({ "join_by" : [Line(" ")],
                         "start" : [Line("(")],
                         # 1 == len("(") })
                         "depth_fn" : lambda list, node: 1 })
+
+ARGUMENT_LIST_NO_LINE_BREAK = tuple(map(lambda arg: merged_dicts(arg,
+                                                                 { "join_by" : [Line(" ")]}),
+                                    ARGUMENT_LIST_ARGS))
 # This version of ARGUMENT_LIST_ARGS prevents empty argument list for functions
 ARGUMENT_LIST_ARGS_NON_BRACELESS = tuple(map(lambda arg: merged_dicts(arg,
                                                                       { "empty" : [Line("()")] }),
@@ -896,6 +903,9 @@ class ArgumentList(InlinableList):
     def _inlined_and_lined_list_args(self, options):
         if not options.allow_braceless_argument_list:
             return ARGUMENT_LIST_ARGS_NON_BRACELESS
+        # Do not line break if ArgumentList is from Bundle or Body
+        elif options.ancestor_indent == 0:
+            return ARGUMENT_LIST_NO_LINE_BREAK
         return ARGUMENT_LIST_ARGS
 
 class Specification(ListBase):
