@@ -237,7 +237,7 @@ def p_error(p):
         raise ParserError("End of file", 0, "", 0)
 
 yacc.yacc(debug = False,
-          picklefile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "parsetab.pickle"))
+          picklefile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "/tmp/parsetab.pickle"))
 
 ######
 

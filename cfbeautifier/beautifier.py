@@ -9,7 +9,7 @@ class Options(object):
     def __init__(self):
         self.removes_empty_promise_types = True
         self.sorts_promise_types_to_evaluation_order = True
-        self.page_width = 100
+        self.page_width = 500
         self.line_endings = None
 
 def line_endings(string, line_endings):
