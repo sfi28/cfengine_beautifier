@@ -1,0 +1,54 @@
+# Directories...
+$bindir=/usr/bin
+$libdir=/usr/lib/cf-beautifier
+$srcdir=.
+
+# Product information
+%product CFEngine Beautifier
+%copyright (c) MIT License
+%vendor https://github.com/sfi28/cfengine_beautifier
+%license ${srcdir}/LICENSE
+%readme ${srcdir}/README.md
+%packager sfi28
+%description Beautifier tool for CFEngine files
+%version 0.2
+
+%preremove << EOF
+find ${libdir} -name '*.pyc' -delete
+find /tmp -name 'parsetab.pickle' -delete
+EOF
+
+# Executables
+l 0755 root sys ${bindir}/cf-beautify ${libdir}/cf-beautify
+
+# Documentation
+f 0444 root sys ${libdir}/README.md ${srcdir}/README.md
+f 0444 root sys ${libdir}/LICENSE ${srcdir}/LICENSE
+
+# Library
+d 0755 root sys ${libdir} -
+f 0755 root sys ${libdir}/cf-beautify ${srcdir}/cf-beautify
+
+d 0755 root sys ${libdir}/cfbeautifier -
+f 0644 root sys ${libdir}/cfbeautifier/beautifier.py ${srcdir}/cfbeautifier/beautifier.py
+f 0644 root sys ${libdir}/cfbeautifier/color.py ${srcdir}/cfbeautifier/color.py
+f 0644 root sys ${libdir}/cfbeautifier/__init__.py ${srcdir}/cfbeautifier/__init__.py
+f 0644 root sys ${libdir}/cfbeautifier/lexer.py ${srcdir}/cfbeautifier/lexer.py
+f 0644 root sys ${libdir}/cfbeautifier/parser.py ${srcdir}/cfbeautifier/parser.py
+f 0644 root sys ${libdir}/cfbeautifier/structure.py ${srcdir}/cfbeautifier/structure.py
+f 0644 root sys ${libdir}/cfbeautifier/util.py ${srcdir}/cfbeautifier/util.py
+f 0644 root sys ${libdir}/cfbeautifier/version_abstraction.py ${srcdir}/cfbeautifier/version_abstraction.py
+
+d 0755 root sys ${libdir}/cfbeautifier/ply -
+f 0644 root sys ${libdir}/cfbeautifier/ply/__init__.py ${srcdir}/cfbeautifier/ply/__init__.py
+f 0644 root sys ${libdir}/cfbeautifier/ply/lex.py ${srcdir}/cfbeautifier/ply/lex.py
+f 0644 root sys ${libdir}/cfbeautifier/ply/yacc.py ${srcdir}/cfbeautifier/ply/yacc.py
+
+# Sublime files
+f 0644 root sys ${libdir}/Default\ \(Linux\).sublime-keymap ${srcdir}/Default\ \(Linux\).sublime-keymap
+f 0644 root sys ${libdir}/Default\ \(OSX\).sublime-keymap ${srcdir}/Default\ \(OSX\).sublime-keymap
+f 0644 root sys ${libdir}/Default\ \(Windows\).sublime-keymap ${srcdir}/Default\ \(Windows\).sublime-keymap
+f 0644 root sys ${libdir}/.no_sublime_package ${srcdir}/.no_sublime_package
+f 0644 root sys ${libdir}/CFEngineBeautifier.sublime-settings ${srcdir}/CFEngineBeautifier.sublime-settings
+f 0644 root sys ${libdir}/cfengine_beautify_sublime.py ${srcdir}/cfengine_beautify_sublime.py
+f 0644 root sys ${libdir}/Main.sublime-menu ${srcdir}/Main.sublime-menu

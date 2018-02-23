@@ -85,3 +85,10 @@ For more information: https://sublime.wbond.net/docs/usage
 ### Command Line Options
 
 Run cf-beautify --help
+
+## Building a package with epm
+
+To build a Debian package use the following command:
+```sudo epm -v -f deb --output-dir /var/tmp cf-beautifier```
+This will use the equal named list `cf-beautifier.list` for building the package.
+If you want to use your own list simply append for example `mylist.list` to the command.
