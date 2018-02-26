@@ -378,7 +378,7 @@ class Node(object):
                 line_comment = merged_comment(line_comments)
                 line_comment_lines = line_comment.lines(comment_options)
                 # append single hash at the end of standalone comments
-                if line_comment_lines[-1].string != "#":
+                if not re.match(r"^\#+$", line_comment_lines[-1].string):
                     line_comment_lines.append( Line("#", 0))
             else:
                 line_comment_lines = []
@@ -476,14 +476,12 @@ class Comment(Node):
     def _lines(self, options):
         # text without starting #
         def text_for_line(line):
-            # No space in #-..., or #=... or ##...
-            # Remove following hashes
-            beginning_hash = re.match(r"^\#[\#\-=]*(.*)", line)
-            if len(line) <= 1 or beginning_hash:
-                text = beginning_hash.group(1)
+            # No space in #-..., or #=... or ##... or #!...
+            if len(line) <= 1 or re.match(r"^\#[!\#\-=]", line):
+                text = line[1:]
                 separator = ""
             else:
-                text, = re.match(r"\#+[\t ]?(.*)", line).groups(1)
+                text, = re.match(r"\#[\t ]?(.*)", line).groups()
                 separator = " "
             return Line("#%s" % separator + text, 0)
         return map(text_for_line, self.text_lines)
